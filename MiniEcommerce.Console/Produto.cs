@@ -22,4 +22,16 @@ public class Produto
         Preco = preco;
         Estoque = estoque;
     }
+
+    public void BaixarEstoque(int quantidade)
+    {
+        if (quantidade <= 0)
+            throw new ArgumentException("A quantidade a baixar deve ser maior que zero.");
+
+        if (quantidade > Estoque)
+            throw new InvalidOperationException(
+                $"Estoque insuficiente para \"{Nome}\". Disponível: {Estoque}, solicitado: {quantidade}.");
+
+        Estoque -= quantidade;
+    }
 }

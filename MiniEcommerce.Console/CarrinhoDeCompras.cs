@@ -38,4 +38,6 @@ public class CarrinhoDeCompras
         _itens.Remove(item);
         return true;
     }
+
+    public void Limpar() => _itens.Clear();
 }
