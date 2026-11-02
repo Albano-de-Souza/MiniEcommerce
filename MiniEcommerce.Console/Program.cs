@@ -1,10 +1,9 @@
-using System.Globalization;
 using System.Text;
 using MiniEcommerce.Dominio;
+using static MiniEcommerce.Interface.Entrada;
 
 Console.OutputEncoding = Encoding.UTF8;
 
-var cultura = CultureInfo.GetCultureInfo("pt-BR");
 var catalogo = new Catalogo();
 var carrinho = new CarrinhoDeCompras();
 
@@ -81,7 +80,7 @@ void ListarCatalogo()
 
     Console.WriteLine($"{"Cód",-5}{"Produto",-25}{"Preço",14}{"Estoque",10}");
     foreach (var p in produtos)
-        Console.WriteLine($"{p.Id,-5}{p.Nome,-25}{p.Preco.ToString("C", cultura),14}{p.Estoque,10}");
+        Console.WriteLine($"{p.Id,-5}{p.Nome,-25}{Formato.Moeda(p.Preco),14}{p.Estoque,10}");
 }
 
 void AdicionarAoCarrinho()
@@ -131,9 +130,9 @@ void VerCarrinho()
     {
         Console.WriteLine(
             $"{item.Produto.Id,-5}{item.Produto.Nome,-25}{item.Quantidade,5}" +
-            $"{item.Produto.Preco.ToString("C", cultura),14}{item.Subtotal.ToString("C", cultura),14}");
+            $"{Formato.Moeda(item.Produto.Preco),14}{Formato.Moeda(item.Subtotal),14}");
     }
-    Console.WriteLine($"Subtotal do carrinho: {carrinho.Subtotal.ToString("C", cultura)}");
+    Console.WriteLine($"Subtotal do carrinho: {Formato.Moeda(carrinho.Subtotal)}");
 }
 
 void FinalizarPedido()
@@ -142,43 +141,4 @@ void FinalizarPedido()
     Console.WriteLine("Pedido finalizado com sucesso!");
     Console.WriteLine();
     Console.Write(pedido.GerarResumo());
-}
-
-string LerTexto(string mensagem)
-{
-    Console.Write(mensagem);
-    string? texto = Console.ReadLine();
-
-    if (texto is null) // entrada encerrada (Ctrl+Z / Ctrl+D)
-        Environment.Exit(0);
-
-    return texto?.Trim() ?? string.Empty;
-}
-
-int LerInteiro(string mensagem)
-{
-    while (true)
-    {
-        if (int.TryParse(LerTexto(mensagem), out int valor))
-            return valor;
-
-        Console.WriteLine("Digite um número inteiro válido.");
-    }
-}
-
-decimal LerDecimal(string mensagem)
-{
-    while (true)
-    {
-        string texto = LerTexto(mensagem);
-
-        // Aceita "19,90" e também "19.90"
-        if (!texto.Contains(','))
-            texto = texto.Replace('.', ',');
-
-        if (decimal.TryParse(texto, NumberStyles.Number, cultura, out decimal valor))
-            return valor;
-
-        Console.WriteLine("Digite um valor válido (ex.: 19,90).");
-    }
 }

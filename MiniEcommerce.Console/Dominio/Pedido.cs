@@ -1,16 +1,10 @@
-using System.Globalization;
 using System.Text;
 
 namespace MiniEcommerce.Dominio;
 
-public record ItemPedido(string NomeProduto, decimal PrecoUnitario, int Quantidade)
-{
-    public decimal Subtotal => PrecoUnitario * Quantidade;
-}
-
+/// <summary>Pedido fechado a partir de um carrinho (checkout).</summary>
 public class Pedido
 {
-    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("pt-BR");
     private static int _ultimoNumero;
 
     public int Numero { get; }
@@ -26,6 +20,10 @@ public class Pedido
         Total = itens.Sum(i => i.Subtotal);
     }
 
+    /// <summary>
+    /// Fecha o pedido: confere o estoque de todos os itens, baixa o estoque
+    /// e esvazia o carrinho. Se algum item não tiver estoque, nada é alterado.
+    /// </summary>
     public static Pedido Fechar(CarrinhoDeCompras carrinho)
     {
         ArgumentNullException.ThrowIfNull(carrinho);
@@ -33,21 +31,12 @@ public class Pedido
         if (carrinho.EstaVazio)
             throw new InvalidOperationException("Não é possível fechar um pedido com o carrinho vazio.");
 
-        // 1) Confere todo o estoque ANTES de baixar qualquer coisa
-        foreach (var item in carrinho.Itens)
-        {
-            if (item.Quantidade > item.Produto.Estoque)
-                throw new InvalidOperationException(
-                    $"Estoque insuficiente para \"{item.Produto.Nome}\". " +
-                    $"Disponível: {item.Produto.Estoque}, no carrinho: {item.Quantidade}.");
-        }
+        GarantirEstoqueDeTodosOsItens(carrinho);
 
-        // 2) Guarda uma "foto" dos itens (nome, preço e quantidade no momento da compra)
         var itensDoPedido = carrinho.Itens
             .Select(i => new ItemPedido(i.Produto.Nome, i.Produto.Preco, i.Quantidade))
             .ToList();
 
-        // 3) Baixa o estoque e esvazia o carrinho
         foreach (var item in carrinho.Itens)
             item.Produto.BaixarEstoque(item.Quantidade);
 
@@ -59,16 +48,27 @@ public class Pedido
     public string GerarResumo()
     {
         var resumo = new StringBuilder();
-        resumo.AppendLine($"===== PEDIDO Nº {Numero} — {Data.ToString("dd/MM/yyyy HH:mm", Cultura)} =====");
+        resumo.AppendLine($"===== PEDIDO Nº {Numero} — {Formato.DataHora(Data)} =====");
 
         foreach (var item in Itens)
         {
             resumo.AppendLine(
                 $"{item.Quantidade}x {item.NomeProduto} " +
-                $"({item.PrecoUnitario.ToString("C", Cultura)} cada) = {item.Subtotal.ToString("C", Cultura)}");
+                $"({Formato.Moeda(item.PrecoUnitario)} cada) = {Formato.Moeda(item.Subtotal)}");
         }
 
-        resumo.AppendLine($"TOTAL: {Total.ToString("C", Cultura)}");
+        resumo.AppendLine($"TOTAL: {Formato.Moeda(Total)}");
         return resumo.ToString();
+    }
+
+    private static void GarantirEstoqueDeTodosOsItens(CarrinhoDeCompras carrinho)
+    {
+        foreach (var item in carrinho.Itens)
+        {
+            if (item.Quantidade > item.Produto.Estoque)
+                throw new InvalidOperationException(
+                    $"Estoque insuficiente para \"{item.Produto.Nome}\". " +
+                    $"Disponível: {item.Produto.Estoque}, no carrinho: {item.Quantidade}.");
+        }
     }
 }
